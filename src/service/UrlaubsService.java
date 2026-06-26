@@ -24,6 +24,8 @@ import model.Urlaubsantrag;
 // Die Fachlogik kommt in diese Klasse, nicht in UI oder DAO.
 public class UrlaubsService extends UnicastRemoteObject implements IUrlaubsService {
 
+    private static final long serialVersionUID = 1L;
+
     private IUrlaubsantragDAO urlaubsantragDAO;
     private IMitarbeiterDAO mitarbeiterDAO;
     private IKalenderDAO kalenderDAO;
