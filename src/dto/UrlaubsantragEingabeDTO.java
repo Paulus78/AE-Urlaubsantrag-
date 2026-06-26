@@ -6,6 +6,8 @@ import java.io.Serializable;
 // Die UI packt die Eingaben hier hinein und schickt sie spaeter an den Service.
 public class UrlaubsantragEingabeDTO implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     // Genau diese vier Werte gibt der Benutzer fuer einen Antrag ein.
     private int antragstellerId;
     private int vertretungId;

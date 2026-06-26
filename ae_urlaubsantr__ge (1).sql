@@ -28,7 +28,7 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `mitarbeiter` (
-  `Mitarbeiter_ID` int(20) NOT NULL,
+  `Mitarbeiter_ID` int(20) NOT NULL AUTO_INCREMENT,
   `Vorname` varchar(30) NOT NULL,
   `Nachname` varchar(30) NOT NULL,
   `Resturlaub` int(3) NOT NULL,
@@ -53,13 +53,13 @@ INSERT INTO `mitarbeiter` (`Mitarbeiter_ID`, `Vorname`, `Nachname`, `Resturlaub`
 --
 
 CREATE TABLE `urlaubsantrag` (
-  `Antrag_ID` int(20) NOT NULL,
+  `Antrag_ID` int(20) NOT NULL AUTO_INCREMENT,
   `Starttag` int(10) NOT NULL,
   `Endtag` int(10) NOT NULL,
   `Status` varchar(20) NOT NULL,
   `Angestellter_ID` int(20) NOT NULL,
   `Vertretung_ID` int(20) NOT NULL,
-  `Genehmiger_ID` int(20) NOT NULL
+  `Genehmiger_ID` int(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 
 -- --------------------------------------------------------
@@ -69,7 +69,7 @@ CREATE TABLE `urlaubsantrag` (
 --
 
 CREATE TABLE `urlaubskalender` (
-  `Kalender_ID` int(20) NOT NULL,
+  `Kalender_ID` int(20) NOT NULL AUTO_INCREMENT,
   `Mitarbeiter_ID` int(20) NOT NULL,
   `Starttag` int(20) NOT NULL,
   `Endtag` int(20) NOT NULL

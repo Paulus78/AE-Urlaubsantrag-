@@ -6,6 +6,8 @@ import java.io.Serializable;
 // Es enthaelt nur, welcher Antrag entschieden wird und ob er genehmigt wurde.
 public class EntscheidungDTO implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     private int antragId;
     private boolean genehmigt;
 

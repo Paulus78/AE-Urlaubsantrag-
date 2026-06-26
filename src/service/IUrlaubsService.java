@@ -10,7 +10,7 @@ import dto.UrlaubsantragDTO;
 import dto.UrlaubsantragEingabeDTO;
 
 // Remote-Interface fuer den UrlaubsService.
-// Die ConsoleUI ruft spaeter nur diese Methoden auf und nicht direkt die DAOs.
+// Das ist der gemeinsame Vertrag zwischen Client und Server.
 public interface IUrlaubsService extends Remote {
 
     // Wird aufgerufen, wenn ein Mitarbeiter Urlaub beantragt.

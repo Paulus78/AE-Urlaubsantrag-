@@ -1,34 +1,35 @@
 package dao;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
 import model.Kalendereintrag;
 
-// JDBC-Umsetzung fuer die Tabelle urlaubskalender.
-// Hier wird nur mit Kalenderdaten gearbeitet, nicht fachlich entschieden.
+// Datenbankzugriffe fuer den Urlaubskalender.
+// Hier wird nichts genehmigt, sondern nur gespeichert oder gelesen.
 public class KalenderDAO implements IKalenderDAO {
 
-    // Speichert einen genehmigten Urlaub im Kalender.
+    // Speichert einen Urlaub im Kalender und gibt die neue ID zurueck.
     @Override
     public int speichern(Kalendereintrag eintrag) throws SQLException {
         String sql = "INSERT INTO urlaubskalender "
-                + "(mitarbeiter_id, starttag, endtag) VALUES ("
-                + eintrag.getMitarbeiterId() + ", "
-                + eintrag.getStarttag() + ", "
-                + eintrag.getEndtag() + ")";
+                + "(mitarbeiter_id, starttag, endtag) VALUES (?, ?, ?)";
 
         Connection con = null;
-        Statement stat = null;
+        PreparedStatement stat = null;
         ResultSet res = null;
         int neueId = 0;
 
         try {
             con = DatabaseConnection.getConnection();
-            stat = con.createStatement();
-            stat.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS);
+            stat = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            stat.setInt(1, eintrag.getMitarbeiterId());
+            stat.setInt(2, eintrag.getStarttag());
+            stat.setInt(3, eintrag.getEndtag());
+            stat.executeUpdate();
             res = stat.getGeneratedKeys();
 
             if (res.next()) {
@@ -44,24 +45,27 @@ public class KalenderDAO implements IKalenderDAO {
         return neueId;
     }
 
-    // Prueft, ob im Kalender schon ein Urlaub im gleichen Zeitraum liegt.
+    // Prueft, ob sich ein Zeitraum mit einem Kalendereintrag ueberschneidet.
     @Override
     public boolean hatUeberschneidung(int mitarbeiterId, int starttag, int endtag)
             throws SQLException {
         String sql = "SELECT COUNT(*) FROM urlaubskalender "
-                + "WHERE mitarbeiter_id = " + mitarbeiterId
-                + " AND starttag <= " + endtag
-                + " AND endtag >= " + starttag;
+                + "WHERE mitarbeiter_id = ? "
+                + "AND starttag <= ? "
+                + "AND endtag >= ?";
 
         Connection con = null;
-        Statement stat = null;
+        PreparedStatement stat = null;
         ResultSet res = null;
         boolean hatUeberschneidung = false;
 
         try {
             con = DatabaseConnection.getConnection();
-            stat = con.createStatement();
-            res = stat.executeQuery(sql);
+            stat = con.prepareStatement(sql);
+            stat.setInt(1, mitarbeiterId);
+            stat.setInt(2, endtag);
+            stat.setInt(3, starttag);
+            res = stat.executeQuery();
 
             if (res.next()) {
                 hatUeberschneidung = res.getInt(1) > 0;
@@ -76,8 +80,8 @@ public class KalenderDAO implements IKalenderDAO {
         return hatUeberschneidung;
     }
 
-    // Schliesst die JDBC-Objekte in umgekehrter Reihenfolge.
-    private void schliessen(ResultSet res, Statement stat, Connection con)
+    // JDBC-Objekte wieder schliessen, damit keine Verbindung offen bleibt.
+    private void schliessen(ResultSet res, PreparedStatement stat, Connection con)
             throws SQLException {
         if (res != null) {
             res.close();

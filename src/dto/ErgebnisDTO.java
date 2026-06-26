@@ -6,6 +6,8 @@ import java.io.Serializable;
 // So kann die UI spaeter anzeigen, ob etwas geklappt hat.
 public class ErgebnisDTO implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     // erfolgreich: true oder false, dazu Status, Meldung und optional Antrag-ID.
     private boolean erfolgreich;
     private String status;

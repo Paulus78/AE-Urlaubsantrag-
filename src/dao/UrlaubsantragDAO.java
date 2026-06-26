@@ -1,42 +1,44 @@
 package dao;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
 import model.Urlaubsantrag;
 
-// JDBC-Umsetzung fuer die Tabelle urlaubsantrag.
-// Diese Klasse liest und schreibt Antraege, entscheidet aber nichts fachlich.
+// Datenbankzugriffe fuer Urlaubsantraege.
+// Die Entscheidung ueber Genehmigung oder Ablehnung trifft der Service.
 public class UrlaubsantragDAO implements IUrlaubsantragDAO {
 
-    // Speichert einen neuen Urlaubsantrag und gibt die neue Antrag-ID zurueck.
+    // Speichert einen Antrag und gibt die neue Antrag-ID zurueck.
     @Override
     public int speichern(Urlaubsantrag antrag) throws SQLException {
         // TODO: In der aktuellen DB heisst die Spalte Angestellter_ID.
         // In der Spezifikation heisst sie fachlich antragsteller_id.
         String sql = "INSERT INTO urlaubsantrag "
                 + "(Starttag, Endtag, Status, Angestellter_ID, Vertretung_ID, "
-                + "Genehmiger_ID) VALUES ("
-                + antrag.getStarttag() + ", "
-                + antrag.getEndtag() + ", "
-                + sqlText(antrag.getStatus()) + ", "
-                + antrag.getAntragstellerId() + ", "
-                + antrag.getVertretungId() + ", "
-                + sqlInteger(antrag.getGenehmigerId()) + ")";
+                + "Genehmiger_ID) VALUES (?, ?, ?, ?, ?, ?)";
 
         Connection con = null;
-        Statement stat = null;
+        PreparedStatement stat = null;
         ResultSet res = null;
         int neueId = 0;
 
         try {
             con = DatabaseConnection.getConnection();
-            stat = con.createStatement();
-            stat.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS);
+            stat = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            stat.setInt(1, antrag.getStarttag());
+            stat.setInt(2, antrag.getEndtag());
+            stat.setString(3, antrag.getStatus());
+            stat.setInt(4, antrag.getAntragstellerId());
+            stat.setInt(5, antrag.getVertretungId());
+            setIntegerOderNull(stat, 6, antrag.getGenehmigerId());
+            stat.executeUpdate();
             res = stat.getGeneratedKeys();
 
             if (res.next()) {
@@ -52,22 +54,23 @@ public class UrlaubsantragDAO implements IUrlaubsantragDAO {
         return neueId;
     }
 
-    // Sucht einen Urlaubsantrag anhand seiner ID.
+    // Sucht einen Antrag ueber seine ID.
     @Override
     public Urlaubsantrag findeNachId(int antragId) throws SQLException {
         String sql = "SELECT Antrag_ID, Starttag, Endtag, Status, "
                 + "Angestellter_ID, Vertretung_ID, Genehmiger_ID "
-                + "FROM urlaubsantrag WHERE Antrag_ID = " + antragId;
+                + "FROM urlaubsantrag WHERE Antrag_ID = ?";
 
         Connection con = null;
-        Statement stat = null;
+        PreparedStatement stat = null;
         ResultSet res = null;
         Urlaubsantrag antrag = null;
 
         try {
             con = DatabaseConnection.getConnection();
-            stat = con.createStatement();
-            res = stat.executeQuery(sql);
+            stat = con.prepareStatement(sql);
+            stat.setInt(1, antragId);
+            res = stat.executeQuery();
 
             if (res.next()) {
                 antrag = erstelleUrlaubsantrag(res);
@@ -82,23 +85,23 @@ public class UrlaubsantragDAO implements IUrlaubsantragDAO {
         return antrag;
     }
 
-    // Liefert alle offenen Urlaubsantraege aus der Datenbank.
+    // Liefert alle Antraege mit dem Status offen.
     @Override
     public List<Urlaubsantrag> findeOffeneAntraege() throws SQLException {
         String sql = "SELECT Antrag_ID, Starttag, Endtag, Status, "
                 + "Angestellter_ID, Vertretung_ID, Genehmiger_ID "
-                + "FROM urlaubsantrag WHERE Status = "
-                + sqlText(Urlaubsantrag.STATUS_OFFEN);
+                + "FROM urlaubsantrag WHERE Status = ?";
 
         Connection con = null;
-        Statement stat = null;
+        PreparedStatement stat = null;
         ResultSet res = null;
         List<Urlaubsantrag> antraege = new ArrayList<>();
 
         try {
             con = DatabaseConnection.getConnection();
-            stat = con.createStatement();
-            res = stat.executeQuery(sql);
+            stat = con.prepareStatement(sql);
+            stat.setString(1, Urlaubsantrag.STATUS_OFFEN);
+            res = stat.executeQuery();
 
             while (res.next()) {
                 antraege.add(erstelleUrlaubsantrag(res));
@@ -117,16 +120,18 @@ public class UrlaubsantragDAO implements IUrlaubsantragDAO {
     @Override
     public void statusAktualisieren(int antragId, String status)
             throws SQLException {
-        String sql = "UPDATE urlaubsantrag SET Status = " + sqlText(status)
-                + " WHERE Antrag_ID = " + antragId;
+        String sql = "UPDATE urlaubsantrag SET Status = ? "
+                + "WHERE Antrag_ID = ?";
 
         Connection con = null;
-        Statement stat = null;
+        PreparedStatement stat = null;
 
         try {
             con = DatabaseConnection.getConnection();
-            stat = con.createStatement();
-            stat.executeUpdate(sql);
+            stat = con.prepareStatement(sql);
+            stat.setString(1, status);
+            stat.setInt(2, antragId);
+            stat.executeUpdate();
         } catch (SQLException exception) {
             throw new SQLException("Status konnte nicht aktualisiert werden.",
                     exception);
@@ -155,26 +160,18 @@ public class UrlaubsantragDAO implements IUrlaubsantragDAO {
                 genehmigerId);
     }
 
-    // Setzt Hochkommas um einen Text fuer einfache SQL-Strings.
-    private String sqlText(String wert) {
+    // Setzt eine Integer-Zahl oder NULL in ein PreparedStatement.
+    private void setIntegerOderNull(PreparedStatement stat, int position,
+            Integer wert) throws SQLException {
         if (wert == null) {
-            return "NULL";
+            stat.setNull(position, Types.INTEGER);
+        } else {
+            stat.setInt(position, wert);
         }
-
-        return "'" + wert + "'";
     }
 
-    // Gibt NULL oder die Zahl als Text fuer SQL zurueck.
-    private String sqlInteger(Integer wert) {
-        if (wert == null) {
-            return "NULL";
-        }
-
-        return String.valueOf(wert);
-    }
-
-    // Schliesst die JDBC-Objekte in umgekehrter Reihenfolge.
-    private void schliessen(ResultSet res, Statement stat, Connection con)
+    // JDBC-Objekte wieder schliessen, damit keine Verbindung offen bleibt.
+    private void schliessen(ResultSet res, PreparedStatement stat, Connection con)
             throws SQLException {
         if (res != null) {
             res.close();

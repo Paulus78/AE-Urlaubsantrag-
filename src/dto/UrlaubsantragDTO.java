@@ -6,6 +6,8 @@ import java.io.Serializable;
 // Es enthaelt die wichtigsten Antragsdaten, aber keine Fachlogik.
 public class UrlaubsantragDTO implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     // Diese Werte koennen spaeter z.B. in der ConsoleUI angezeigt werden.
     private int antragId;
     private int starttag;

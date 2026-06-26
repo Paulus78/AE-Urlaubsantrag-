@@ -1,32 +1,32 @@
 package dao;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 import model.Mitarbeiter;
 
-// JDBC-Umsetzung fuer die Tabelle mitarbeiter.
-// Diese Klasse enthaelt nur Datenbankzugriffe, keine fachlichen Entscheidungen.
+// Datenbankzugriffe fuer Mitarbeiter.
+// Fachliche Entscheidungen gehoeren nicht hier rein, sondern in den Service.
 public class MitarbeiterDAO implements IMitarbeiterDAO {
 
-    // Sucht einen Mitarbeiter anhand seiner ID in der Datenbank.
+    // Sucht einen Mitarbeiter ueber seine ID.
     @Override
     public Mitarbeiter findeNachId(int mitarbeiterId) throws SQLException {
         String sql = "SELECT mitarbeiter_id, vorname, nachname, resturlaub, "
-                + "vorgesetzter_id FROM mitarbeiter WHERE mitarbeiter_id = "
-                + mitarbeiterId;
+                + "vorgesetzter_id FROM mitarbeiter WHERE mitarbeiter_id = ?";
 
         Connection con = null;
-        Statement stat = null;
+        PreparedStatement stat = null;
         ResultSet res = null;
         Mitarbeiter mitarbeiter = null;
 
         try {
             con = DatabaseConnection.getConnection();
-            stat = con.createStatement();
-            res = stat.executeQuery(sql);
+            stat = con.prepareStatement(sql);
+            stat.setInt(1, mitarbeiterId);
+            res = stat.executeQuery();
 
             if (res.next()) {
                 mitarbeiter = erstelleMitarbeiter(res);
@@ -41,21 +41,22 @@ public class MitarbeiterDAO implements IMitarbeiterDAO {
         return mitarbeiter;
     }
 
-    // Aktualisiert den Resturlaub eines Mitarbeiters.
-    // Diese Methode wird spaeter vom UrlaubsService aufgerufen.
+    // Schreibt den neuen Resturlaub in die Datenbank.
     @Override
     public void resturlaubAktualisieren(int mitarbeiterId, int neuerResturlaub)
             throws SQLException {
-        String sql = "UPDATE mitarbeiter SET resturlaub = " + neuerResturlaub
-                + " WHERE mitarbeiter_id = " + mitarbeiterId;
+        String sql = "UPDATE mitarbeiter SET resturlaub = ? "
+                + "WHERE mitarbeiter_id = ?";
 
         Connection con = null;
-        Statement stat = null;
+        PreparedStatement stat = null;
 
         try {
             con = DatabaseConnection.getConnection();
-            stat = con.createStatement();
-            stat.executeUpdate(sql);
+            stat = con.prepareStatement(sql);
+            stat.setInt(1, neuerResturlaub);
+            stat.setInt(2, mitarbeiterId);
+            stat.executeUpdate();
         } catch (SQLException exception) {
             throw new SQLException("Resturlaub konnte nicht aktualisiert werden.",
                     exception);
@@ -81,8 +82,8 @@ public class MitarbeiterDAO implements IMitarbeiterDAO {
                 vorgesetzterId);
     }
 
-    // Schliesst die JDBC-Objekte in umgekehrter Reihenfolge.
-    private void schliessen(ResultSet res, Statement stat, Connection con)
+    // JDBC-Objekte wieder schliessen, damit keine Verbindung offen bleibt.
+    private void schliessen(ResultSet res, PreparedStatement stat, Connection con)
             throws SQLException {
         if (res != null) {
             res.close();
